@@ -148,6 +148,7 @@ function Get-VPNProvider {
                 URL = "https://account.proton.me/u/0/vpn/OpenVpnIKEv2"
                 Affiliate = "https://protonvpn.tomspark.tech/"
                 Bonus = "3 months FREE"
+                SupportsWireGuard = $true
             }
         }
         "3" {
@@ -157,6 +158,7 @@ function Get-VPNProvider {
                 URL = "https://my.surfshark.com/vpn/manual-setup/main/openvpn"
                 Affiliate = "https://surfshark.tomspark.tech/"
                 Bonus = "3 extra months FREE"
+                SupportsWireGuard = $true
             }
         }
         default {
@@ -166,6 +168,59 @@ function Get-VPNProvider {
                 URL = "https://my.nordaccount.com/dashboard/nordvpn/manual-configuration/"
                 Affiliate = "https://nordvpn.tomspark.tech/"
                 Bonus = "4 extra months FREE"
+                SupportsWireGuard = $false
+                Protocol = "openvpn"
+            }
+        }
+    }
+}
+
+# --- VPN Protocol Selection (ProtonVPN/Surfshark only) ---
+function Get-VPNProtocol {
+    param([hashtable]$VPN)
+
+    if (-not $VPN.SupportsWireGuard) {
+        return @{
+            Protocol = "openvpn"
+            URL = $VPN.URL
+        }
+    }
+
+    Write-Banner
+    Write-Host "  STEP 2: CHOOSE PROTOCOL" -ForegroundColor Magenta
+    Write-Host "  -----------------------" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Which protocol would you like to use?" -ForegroundColor White
+    Write-Host ""
+    Write-Host "    1. OpenVPN" -ForegroundColor Green -NoNewline
+    Write-Host "     - Traditional, widely compatible" -ForegroundColor Gray
+    Write-Host "    2. WireGuard" -ForegroundColor Cyan -NoNewline
+    Write-Host "   - Faster, more modern (Recommended)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Select (1-2) [default: 1]: " -ForegroundColor Yellow -NoNewline
+    $protocolChoice = Read-Host
+
+    switch ($protocolChoice) {
+        "2" {
+            if ($VPN.Provider -eq "protonvpn") {
+                $url = "https://account.proton.me/u/0/vpn/WireGuard"
+            } else {
+                $url = "https://my.surfshark.com/vpn/manual-setup/main/wireguard"
+            }
+            return @{
+                Protocol = "wireguard"
+                URL = $url
+            }
+        }
+        default {
+            if ($VPN.Provider -eq "protonvpn") {
+                $url = "https://account.proton.me/u/0/vpn/OpenVpnIKEv2"
+            } else {
+                $url = "https://my.surfshark.com/vpn/manual-setup/main/openvpn"
+            }
+            return @{
+                Protocol = "openvpn"
+                URL = $url
             }
         }
     }
@@ -173,52 +228,109 @@ function Get-VPNProvider {
 
 # --- Credential Collection ---
 function Get-VPNCredentials {
-    param([hashtable]$VPN)
+    param(
+        [hashtable]$VPN,
+        [hashtable]$ProtocolInfo
+    )
 
     Write-Banner
-    Write-Host "  STEP 2: VPN CREDENTIALS" -ForegroundColor Magenta
-    Write-Host "  -----------------------" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Warning-Custom "You need $($VPN.Name) 'Service Credentials' (NOT your email/password!)"
-    Write-Host ""
-    Write-Host "  How to get them:" -ForegroundColor White
-    Write-Host "  1. Go to: " -ForegroundColor Gray -NoNewline
-    Write-Host $VPN.URL -ForegroundColor Cyan
-    Write-Host "  2. Look for 'Manual Setup' or 'OpenVPN' credentials" -ForegroundColor Gray
-    Write-Host "  3. Copy the Username and Password shown there" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  Don't have $($VPN.Name)? Get $($VPN.Bonus)!" -ForegroundColor Green
-    Write-Host "  $($VPN.Affiliate)" -ForegroundColor Cyan
-    Write-Host ""
 
-    if (Ask-YesNo "Open $($VPN.Name) credential page in your browser now?") {
-        Start-Process $VPN.URL
+    if ($ProtocolInfo.Protocol -eq "wireguard") {
+        Write-Host "  STEP 3: WIREGUARD CREDENTIALS" -ForegroundColor Magenta
+        Write-Host "  -----------------------------" -ForegroundColor DarkGray
         Write-Host ""
-        Write-Info "Browser opened. Copy your credentials, then come back here."
-        Press-Enter
-    }
+        Write-Warning-Custom "You need your WireGuard configuration from $($VPN.Name)"
+        Write-Host ""
+        Write-Host "  How to get them:" -ForegroundColor White
+        Write-Host "  1. Go to: " -ForegroundColor Gray -NoNewline
+        Write-Host $ProtocolInfo.URL -ForegroundColor Cyan
+        Write-Host "  2. Generate a new WireGuard configuration" -ForegroundColor Gray
+        Write-Host "  3. You'll need the " -ForegroundColor Gray -NoNewline
+        Write-Host "Private Key" -ForegroundColor White -NoNewline
+        Write-Host " and " -ForegroundColor Gray -NoNewline
+        Write-Host "Address" -ForegroundColor White -NoNewline
+        Write-Host " (IP)" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Example values:" -ForegroundColor White
+        Write-Host "    Private Key: " -ForegroundColor Gray -NoNewline
+        Write-Host "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=" -ForegroundColor White
+        Write-Host "    Address:     " -ForegroundColor Gray -NoNewline
+        Write-Host "10.2.0.2/32" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  Don't have $($VPN.Name)? Get $($VPN.Bonus)!" -ForegroundColor Green
+        Write-Host "  $($VPN.Affiliate)" -ForegroundColor Cyan
+        Write-Host ""
 
-    Write-Host ""
-    Write-Host "  Enter your Service Username: " -ForegroundColor Yellow -NoNewline
-    $username = Read-Host
+        if (Ask-YesNo "Open $($VPN.Name) WireGuard page in your browser now?") {
+            Start-Process $ProtocolInfo.URL
+            Write-Host ""
+            Write-Info "Browser opened. Copy your credentials, then come back here."
+            Press-Enter
+        }
 
-    Write-Host "  Enter your Service Password: " -ForegroundColor Yellow -NoNewline
-    $password = Read-Host
+        Write-Host ""
+        Write-Host "  Enter your WireGuard Private Key: " -ForegroundColor Yellow -NoNewline
+        $privateKey = Read-Host
 
-    if ([string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
-        Write-Error-Custom "Username and password cannot be empty!"
-        return $null
-    }
+        Write-Host "  Enter your WireGuard Address (e.g., 10.2.0.2/32): " -ForegroundColor Yellow -NoNewline
+        $address = Read-Host
 
-    return @{
-        Username = $username.Trim()
-        Password = $password.Trim()
+        if ([string]::IsNullOrWhiteSpace($privateKey) -or [string]::IsNullOrWhiteSpace($address)) {
+            Write-Error-Custom "Private Key and Address cannot be empty!"
+            return $null
+        }
+
+        return @{
+            Type = "wireguard"
+            PrivateKey = $privateKey.Trim()
+            Address = $address.Trim()
+        }
+    } else {
+        Write-Host "  STEP 3: VPN CREDENTIALS" -ForegroundColor Magenta
+        Write-Host "  -----------------------" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Warning-Custom "You need $($VPN.Name) 'Service Credentials' (NOT your email/password!)"
+        Write-Host ""
+        Write-Host "  How to get them:" -ForegroundColor White
+        Write-Host "  1. Go to: " -ForegroundColor Gray -NoNewline
+        Write-Host $ProtocolInfo.URL -ForegroundColor Cyan
+        Write-Host "  2. Look for 'Manual Setup' or 'OpenVPN' credentials" -ForegroundColor Gray
+        Write-Host "  3. Copy the Username and Password shown there" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Don't have $($VPN.Name)? Get $($VPN.Bonus)!" -ForegroundColor Green
+        Write-Host "  $($VPN.Affiliate)" -ForegroundColor Cyan
+        Write-Host ""
+
+        if (Ask-YesNo "Open $($VPN.Name) credential page in your browser now?") {
+            Start-Process $ProtocolInfo.URL
+            Write-Host ""
+            Write-Info "Browser opened. Copy your credentials, then come back here."
+            Press-Enter
+        }
+
+        Write-Host ""
+        Write-Host "  Enter your Service Username: " -ForegroundColor Yellow -NoNewline
+        $username = Read-Host
+
+        Write-Host "  Enter your Service Password: " -ForegroundColor Yellow -NoNewline
+        $password = Read-Host
+
+        if ([string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
+            Write-Error-Custom "Username and password cannot be empty!"
+            return $null
+        }
+
+        return @{
+            Type = "openvpn"
+            Username = $username.Trim()
+            Password = $password.Trim()
+        }
     }
 }
 
 function Get-ServerCountry {
     Write-Banner
-    Write-Host "  STEP 3: SERVER LOCATION" -ForegroundColor Magenta
+    Write-Host "  STEP 4: SERVER LOCATION" -ForegroundColor Magenta
     Write-Host "  -----------------------" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Pick the closest country to you for best speeds!" -ForegroundColor Yellow
@@ -248,7 +360,7 @@ function Get-ServerCountry {
 
 function Get-Timezone {
     Write-Banner
-    Write-Host "  STEP 4: TIMEZONE" -ForegroundColor Magenta
+    Write-Host "  STEP 5: TIMEZONE" -ForegroundColor Magenta
     Write-Host "  ----------------" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Common timezones:" -ForegroundColor White
@@ -282,6 +394,7 @@ function New-EnvFile {
     param(
         [string]$Path,
         [hashtable]$VPN,
+        [hashtable]$ProtocolInfo,
         [hashtable]$Credentials,
         [string]$Country,
         [string]$Timezone
@@ -293,15 +406,37 @@ function New-EnvFile {
 # Created by Tom Spark | youtube.com/@TomSparkReviews
 #
 # VPN: $($VPN.Name) ($($VPN.Affiliate))
+# Protocol: $($ProtocolInfo.Protocol)
 # ==========================================
 
 # --- VPN PROVIDER ---
 VPN_PROVIDER=$($VPN.Provider)
 
+# --- VPN PROTOCOL ---
+# Options: openvpn, wireguard
+VPN_TYPE=$($ProtocolInfo.Protocol)
+
 # --- VPN CREDENTIALS ---
-# Service Credentials from: $($VPN.URL)
+# Credentials from: $($ProtocolInfo.URL)
+"@
+
+    if ($Credentials.Type -eq "wireguard") {
+        $content += @"
+
+# WireGuard Configuration
+WIREGUARD_PRIVATE_KEY="$($Credentials.PrivateKey)"
+WIREGUARD_ADDRESSES="$($Credentials.Address)"
+"@
+    } else {
+        $content += @"
+
+# OpenVPN Service Credentials
 VPN_USER="$($Credentials.Username)"
 VPN_PASSWORD="$($Credentials.Password)"
+"@
+    }
+
+    $content += @"
 
 # --- SERVER LOCATION ---
 SERVER_COUNTRIES=$Country
@@ -340,9 +475,13 @@ services:
       - 8080:8080   # qBittorrent Web UI
     environment:
       - VPN_SERVICE_PROVIDER=${VPN_PROVIDER}
-      - VPN_TYPE=openvpn
-      - OPENVPN_USER=${VPN_USER}
-      - OPENVPN_PASSWORD=${VPN_PASSWORD}
+      - VPN_TYPE=${VPN_TYPE:-openvpn}
+      # OpenVPN credentials (used when VPN_TYPE=openvpn)
+      - OPENVPN_USER=${VPN_USER:-}
+      - OPENVPN_PASSWORD=${VPN_PASSWORD:-}
+      # WireGuard credentials (used when VPN_TYPE=wireguard)
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:-}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-}
       - SERVER_COUNTRIES=${SERVER_COUNTRIES}
       - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
     volumes:
@@ -547,7 +686,12 @@ function Main {
     Write-Success "Selected: $($vpn.Name)"
     Press-Enter
 
-    $credentials = Get-VPNCredentials -VPN $vpn
+    $protocolInfo = Get-VPNProtocol -VPN $vpn
+    Write-Host ""
+    Write-Success "Selected: $($protocolInfo.Protocol)"
+    Press-Enter
+
+    $credentials = Get-VPNCredentials -VPN $vpn -ProtocolInfo $protocolInfo
     if (-not $credentials) {
         exit 1
     }
@@ -562,8 +706,14 @@ function Main {
     Write-Host ""
     Write-Host "  Install Path:    $InstallPath" -ForegroundColor White
     Write-Host "  VPN Provider:    $($vpn.Name)" -ForegroundColor White
-    Write-Host "  VPN Username:    $($credentials.Username)" -ForegroundColor White
-    Write-Host "  VPN Password:    $("*" * $credentials.Password.Length)" -ForegroundColor White
+    Write-Host "  VPN Protocol:    $($protocolInfo.Protocol)" -ForegroundColor White
+    if ($credentials.Type -eq "wireguard") {
+        Write-Host "  WG Private Key:  $($credentials.PrivateKey.Substring(0, [Math]::Min(10, $credentials.PrivateKey.Length)))..." -ForegroundColor White
+        Write-Host "  WG Address:      $($credentials.Address)" -ForegroundColor White
+    } else {
+        Write-Host "  VPN Username:    $($credentials.Username)" -ForegroundColor White
+        Write-Host "  VPN Password:    $("*" * $credentials.Password.Length)" -ForegroundColor White
+    }
     Write-Host "  Server Country:  $country" -ForegroundColor White
     Write-Host "  Timezone:        $timezone" -ForegroundColor White
     Write-Host ""
@@ -587,7 +737,7 @@ function Main {
     Write-Success "Directories created"
 
     Write-Step "2" "Generating .env file..."
-    New-EnvFile -Path $InstallPath -VPN $vpn -Credentials $credentials -Country $country -Timezone $timezone
+    New-EnvFile -Path $InstallPath -VPN $vpn -ProtocolInfo $protocolInfo -Credentials $credentials -Country $country -Timezone $timezone
     Write-Success ".env file created"
 
     Write-Step "3" "Generating docker-compose.yml..."
@@ -607,10 +757,17 @@ function Main {
         Write-Error-Custom "Setup failed. Please check your VPN credentials."
         Write-Host ""
         Write-Host "  Common fixes:" -ForegroundColor Yellow
-        Write-Host "    1. Make sure you're using 'Service Credentials' from $($vpn.Name)" -ForegroundColor White
-        Write-Host "    2. NOT your email/password login" -ForegroundColor White
-        Write-Host "    3. Get credentials from: " -ForegroundColor White -NoNewline
-        Write-Host $vpn.URL -ForegroundColor Cyan
+        if ($protocolInfo.Protocol -eq "wireguard") {
+            Write-Host "    1. Make sure your WireGuard Private Key is correct" -ForegroundColor White
+            Write-Host "    2. Verify your WireGuard Address matches the config" -ForegroundColor White
+            Write-Host "    3. Generate a new config from: " -ForegroundColor White -NoNewline
+            Write-Host $protocolInfo.URL -ForegroundColor Cyan
+        } else {
+            Write-Host "    1. Make sure you're using 'Service Credentials' from $($vpn.Name)" -ForegroundColor White
+            Write-Host "    2. NOT your email/password login" -ForegroundColor White
+            Write-Host "    3. Get credentials from: " -ForegroundColor White -NoNewline
+            Write-Host $protocolInfo.URL -ForegroundColor Cyan
+        }
         Write-Host ""
         Write-Host "  To retry, run this script again." -ForegroundColor Gray
     }

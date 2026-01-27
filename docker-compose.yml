@@ -20,9 +20,13 @@ services:
       - 8080:8080   # qBittorrent Web UI
     environment:
       - VPN_SERVICE_PROVIDER=${VPN_PROVIDER}
-      - VPN_TYPE=openvpn
-      - OPENVPN_USER=${VPN_USER}
-      - OPENVPN_PASSWORD=${VPN_PASSWORD}
+      - VPN_TYPE=${VPN_TYPE:-openvpn}
+      # OpenVPN credentials (used when VPN_TYPE=openvpn)
+      - OPENVPN_USER=${VPN_USER:-}
+      - OPENVPN_PASSWORD=${VPN_PASSWORD:-}
+      # WireGuard credentials (used when VPN_TYPE=wireguard)
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:-}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-}
       - SERVER_COUNTRIES=${SERVER_COUNTRIES}
       - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
     volumes:

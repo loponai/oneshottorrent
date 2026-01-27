@@ -135,6 +135,7 @@ get_vpn_provider() {
             VPN_URL="https://account.proton.me/u/0/vpn/OpenVpnIKEv2"
             VPN_AFFILIATE="https://protonvpn.tomspark.tech/"
             VPN_BONUS="3 months FREE"
+            SUPPORTS_WIREGUARD=true
             ;;
         3)
             VPN_PROVIDER="surfshark"
@@ -142,6 +143,7 @@ get_vpn_provider() {
             VPN_URL="https://my.surfshark.com/vpn/manual-setup/main/openvpn"
             VPN_AFFILIATE="https://surfshark.tomspark.tech/"
             VPN_BONUS="3 extra months FREE"
+            SUPPORTS_WIREGUARD=true
             ;;
         *)
             VPN_PROVIDER="nordvpn"
@@ -149,6 +151,8 @@ get_vpn_provider() {
             VPN_URL="https://my.nordaccount.com/dashboard/nordvpn/manual-configuration/"
             VPN_AFFILIATE="https://nordvpn.tomspark.tech/"
             VPN_BONUS="4 extra months FREE"
+            SUPPORTS_WIREGUARD=false
+            VPN_TYPE="openvpn"
             ;;
     esac
 
@@ -156,45 +160,140 @@ get_vpn_provider() {
     write_success "Selected: $VPN_NAME"
 }
 
+# --- VPN Protocol Selection (ProtonVPN/Surfshark only) ---
+get_vpn_protocol() {
+    if [[ "$SUPPORTS_WIREGUARD" != "true" ]]; then
+        VPN_TYPE="openvpn"
+        return
+    fi
+
+    write_banner
+    echo -e "  ${MAGENTA}STEP 2: CHOOSE PROTOCOL${NC}"
+    echo -e "  ${DARKGRAY}-----------------------${NC}"
+    echo ""
+    echo -e "  ${WHITE}Which protocol would you like to use?${NC}"
+    echo ""
+    echo -e "    ${GREEN}1. OpenVPN${NC}     ${GRAY}- Traditional, widely compatible${NC}"
+    echo -e "    ${CYAN}2. WireGuard${NC}   ${GRAY}- Faster, more modern (Recommended)${NC}"
+    echo ""
+    echo -ne "  ${YELLOW}Select (1-2) [default: 1]: ${NC}"
+    read -r protocol_choice
+
+    case "$protocol_choice" in
+        2)
+            VPN_TYPE="wireguard"
+            if [[ "$VPN_PROVIDER" == "protonvpn" ]]; then
+                VPN_URL="https://account.proton.me/u/0/vpn/WireGuard"
+            else
+                VPN_URL="https://my.surfshark.com/vpn/manual-setup/main/wireguard"
+            fi
+            ;;
+        *)
+            VPN_TYPE="openvpn"
+            if [[ "$VPN_PROVIDER" == "protonvpn" ]]; then
+                VPN_URL="https://account.proton.me/u/0/vpn/OpenVpnIKEv2"
+            else
+                VPN_URL="https://my.surfshark.com/vpn/manual-setup/main/openvpn"
+            fi
+            ;;
+    esac
+
+    echo ""
+    write_success "Selected: $VPN_TYPE"
+}
+
 # --- Credential Collection ---
 get_vpn_credentials() {
     write_banner
-    echo -e "  ${MAGENTA}STEP 2: VPN CREDENTIALS${NC}"
-    echo -e "  ${DARKGRAY}-----------------------${NC}"
-    echo ""
-    write_warning "You need $VPN_NAME 'Service Credentials' (NOT your email/password!)"
-    echo ""
-    echo -e "  ${WHITE}How to get them:${NC}"
-    echo -e "  ${GRAY}1. Go to: ${CYAN}${VPN_URL}${NC}"
-    echo -e "  ${GRAY}2. Look for 'Manual Setup' or 'OpenVPN' credentials${NC}"
-    echo -e "  ${GRAY}3. Copy the Username and Password shown there${NC}"
-    echo ""
-    echo -e "  ${GREEN}Don't have ${VPN_NAME}? Get ${VPN_BONUS}!${NC}"
-    echo -e "  ${CYAN}${VPN_AFFILIATE}${NC}"
-    echo ""
 
-    if ask_yes_no "Open $VPN_NAME credential page in your browser now?"; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "$VPN_URL"
-        else
-            xdg-open "$VPN_URL" 2>/dev/null || \
-            echo -e "  ${CYAN}${VPN_URL}${NC}"
-        fi
+    if [[ "$VPN_TYPE" == "wireguard" ]]; then
+        echo -e "  ${MAGENTA}STEP 3: WIREGUARD CREDENTIALS${NC}"
+        echo -e "  ${DARKGRAY}-----------------------------${NC}"
         echo ""
-        write_info "Browser opened. Copy your credentials, then come back here."
-        press_enter
-    fi
+        write_warning "You need your WireGuard configuration from $VPN_NAME"
+        echo ""
+        echo -e "  ${WHITE}How to get them:${NC}"
+        echo -e "  ${GRAY}1. Go to: ${CYAN}${VPN_URL}${NC}"
+        echo -e "  ${GRAY}2. Generate a new WireGuard configuration${NC}"
+        echo -e "  ${GRAY}3. You'll need the ${WHITE}Private Key${GRAY} and ${WHITE}Address${GRAY} (IP)${NC}"
+        echo ""
+        echo -e "  ${WHITE}Example values:${NC}"
+        echo -e "  ${GRAY}  Private Key: ${WHITE}yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=${NC}"
+        echo -e "  ${GRAY}  Address:     ${WHITE}10.2.0.2/32${NC}"
+        echo ""
+        echo -e "  ${GREEN}Don't have ${VPN_NAME}? Get ${VPN_BONUS}!${NC}"
+        echo -e "  ${CYAN}${VPN_AFFILIATE}${NC}"
+        echo ""
 
-    echo ""
-    echo -ne "  ${YELLOW}Enter your Service Username: ${NC}"
-    read -r VPN_USERNAME
+        if ask_yes_no "Open $VPN_NAME WireGuard page in your browser now?"; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                open "$VPN_URL"
+            else
+                xdg-open "$VPN_URL" 2>/dev/null || \
+                echo -e "  ${CYAN}${VPN_URL}${NC}"
+            fi
+            echo ""
+            write_info "Browser opened. Copy your credentials, then come back here."
+            press_enter
+        fi
 
-    echo -ne "  ${YELLOW}Enter your Service Password: ${NC}"
-    read -r VPN_PASSWORD
+        echo ""
+        echo -ne "  ${YELLOW}Enter your WireGuard Private Key: ${NC}"
+        read -r WIREGUARD_PRIVATE_KEY
 
-    if [[ -z "$VPN_USERNAME" || -z "$VPN_PASSWORD" ]]; then
-        write_error "Username and password cannot be empty!"
-        return 1
+        echo -ne "  ${YELLOW}Enter your WireGuard Address (e.g., 10.2.0.2/32): ${NC}"
+        read -r WIREGUARD_ADDRESSES
+
+        if [[ -z "$WIREGUARD_PRIVATE_KEY" || -z "$WIREGUARD_ADDRESSES" ]]; then
+            write_error "Private Key and Address cannot be empty!"
+            return 1
+        fi
+
+        # Clear OpenVPN vars since we're using WireGuard
+        VPN_USERNAME=""
+        VPN_PASSWORD=""
+    else
+        echo -e "  ${MAGENTA}STEP 3: VPN CREDENTIALS${NC}"
+        echo -e "  ${DARKGRAY}-----------------------${NC}"
+        echo ""
+        write_warning "You need $VPN_NAME 'Service Credentials' (NOT your email/password!)"
+        echo ""
+        echo -e "  ${WHITE}How to get them:${NC}"
+        echo -e "  ${GRAY}1. Go to: ${CYAN}${VPN_URL}${NC}"
+        echo -e "  ${GRAY}2. Look for 'Manual Setup' or 'OpenVPN' credentials${NC}"
+        echo -e "  ${GRAY}3. Copy the Username and Password shown there${NC}"
+        echo ""
+        echo -e "  ${GREEN}Don't have ${VPN_NAME}? Get ${VPN_BONUS}!${NC}"
+        echo -e "  ${CYAN}${VPN_AFFILIATE}${NC}"
+        echo ""
+
+        if ask_yes_no "Open $VPN_NAME credential page in your browser now?"; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                open "$VPN_URL"
+            else
+                xdg-open "$VPN_URL" 2>/dev/null || \
+                echo -e "  ${CYAN}${VPN_URL}${NC}"
+            fi
+            echo ""
+            write_info "Browser opened. Copy your credentials, then come back here."
+            press_enter
+        fi
+
+        echo ""
+        echo -ne "  ${YELLOW}Enter your Service Username: ${NC}"
+        read -r VPN_USERNAME
+
+        echo -ne "  ${YELLOW}Enter your Service Password: ${NC}"
+        read -r VPN_PASSWORD
+
+        if [[ -z "$VPN_USERNAME" || -z "$VPN_PASSWORD" ]]; then
+            write_error "Username and password cannot be empty!"
+            return 1
+        fi
+
+        # Clear WireGuard vars since we're using OpenVPN
+        WIREGUARD_PRIVATE_KEY=""
+        WIREGUARD_ADDRESSES=""
     fi
 
     return 0
@@ -202,7 +301,7 @@ get_vpn_credentials() {
 
 get_server_country() {
     write_banner
-    echo -e "  ${MAGENTA}STEP 3: SERVER LOCATION${NC}"
+    echo -e "  ${MAGENTA}STEP 4: SERVER LOCATION${NC}"
     echo -e "  ${DARKGRAY}-----------------------${NC}"
     echo ""
     echo -e "  ${YELLOW}Pick the closest country to you for best speeds!${NC}"
@@ -232,7 +331,7 @@ get_server_country() {
 
 get_timezone() {
     write_banner
-    echo -e "  ${MAGENTA}STEP 4: TIMEZONE${NC}"
+    echo -e "  ${MAGENTA}STEP 5: TIMEZONE${NC}"
     echo -e "  ${DARKGRAY}----------------${NC}"
     echo ""
     echo -e "  ${WHITE}Common timezones:${NC}"
@@ -269,15 +368,35 @@ create_env_file() {
 # Created by Tom Spark | youtube.com/@TomSparkReviews
 #
 # VPN: ${VPN_NAME} (${VPN_AFFILIATE})
+# Protocol: ${VPN_TYPE}
 # ==========================================
 
 # --- VPN PROVIDER ---
 VPN_PROVIDER=${VPN_PROVIDER}
 
+# --- VPN PROTOCOL ---
+# Options: openvpn, wireguard
+VPN_TYPE=${VPN_TYPE}
+
 # --- VPN CREDENTIALS ---
-# Service Credentials from: ${VPN_URL}
+# Credentials from: ${VPN_URL}
+EOF
+
+    if [[ "$VPN_TYPE" == "wireguard" ]]; then
+        cat >> "$SCRIPT_DIR/.env" << EOF
+# WireGuard Configuration
+WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY}"
+WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES}"
+EOF
+    else
+        cat >> "$SCRIPT_DIR/.env" << EOF
+# OpenVPN Service Credentials
 VPN_USER="${VPN_USERNAME}"
 VPN_PASSWORD="${VPN_PASSWORD}"
+EOF
+    fi
+
+    cat >> "$SCRIPT_DIR/.env" << EOF
 
 # --- SERVER LOCATION ---
 SERVER_COUNTRIES=${SERVER_COUNTRY}
@@ -444,6 +563,7 @@ main() {
 
     # Collect configuration
     get_vpn_provider
+    get_vpn_protocol
 
     if ! get_vpn_credentials; then
         exit 1
@@ -459,8 +579,14 @@ main() {
     echo ""
     echo -e "  ${WHITE}Install Path:    ${SCRIPT_DIR}${NC}"
     echo -e "  ${WHITE}VPN Provider:    ${VPN_NAME}${NC}"
-    echo -e "  ${WHITE}VPN Username:    ${VPN_USERNAME}${NC}"
-    echo -e "  ${WHITE}VPN Password:    $(printf '*%.0s' $(seq 1 ${#VPN_PASSWORD}))${NC}"
+    echo -e "  ${WHITE}VPN Protocol:    ${VPN_TYPE}${NC}"
+    if [[ "$VPN_TYPE" == "wireguard" ]]; then
+        echo -e "  ${WHITE}WG Private Key:  $(echo "$WIREGUARD_PRIVATE_KEY" | head -c 10)...${NC}"
+        echo -e "  ${WHITE}WG Address:      ${WIREGUARD_ADDRESSES}${NC}"
+    else
+        echo -e "  ${WHITE}VPN Username:    ${VPN_USERNAME}${NC}"
+        echo -e "  ${WHITE}VPN Password:    $(printf '*%.0s' $(seq 1 ${#VPN_PASSWORD}))${NC}"
+    fi
     echo -e "  ${WHITE}Server Country:  ${SERVER_COUNTRY}${NC}"
     echo -e "  ${WHITE}Timezone:        ${TIMEZONE}${NC}"
     echo ""
@@ -497,9 +623,15 @@ main() {
         write_error "Setup failed. Please check your VPN credentials."
         echo ""
         echo -e "  ${YELLOW}Common fixes:${NC}"
-        echo -e "    ${WHITE}1. Make sure you're using 'Service Credentials' from ${VPN_NAME}${NC}"
-        echo -e "    ${WHITE}2. NOT your email/password login${NC}"
-        echo -e "    ${WHITE}3. Get credentials from: ${CYAN}${VPN_URL}${NC}"
+        if [[ "$VPN_TYPE" == "wireguard" ]]; then
+            echo -e "    ${WHITE}1. Make sure your WireGuard Private Key is correct${NC}"
+            echo -e "    ${WHITE}2. Verify your WireGuard Address matches the config${NC}"
+            echo -e "    ${WHITE}3. Generate a new config from: ${CYAN}${VPN_URL}${NC}"
+        else
+            echo -e "    ${WHITE}1. Make sure you're using 'Service Credentials' from ${VPN_NAME}${NC}"
+            echo -e "    ${WHITE}2. NOT your email/password login${NC}"
+            echo -e "    ${WHITE}3. Get credentials from: ${CYAN}${VPN_URL}${NC}"
+        fi
         echo ""
         echo -e "  ${GRAY}To retry, run this script again.${NC}"
     fi
