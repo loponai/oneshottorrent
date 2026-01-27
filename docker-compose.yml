@@ -1,0 +1,46 @@
+# ==========================================
+# TOM SPARK'S SAFE TORRENT BOX
+# Created by Tom Spark | youtube.com/@TomSparkReviews
+#
+# VPN Options:
+#   NordVPN:   nordvpn.tomspark.tech   (4 extra months FREE!)
+#   ProtonVPN: protonvpn.tomspark.tech (3 months FREE!)
+#   Surfshark: surfshark.tomspark.tech (3 extra months FREE!)
+# ==========================================
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8080:8080   # qBittorrent Web UI
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_PROVIDER}
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${VPN_USER}
+      - OPENVPN_PASSWORD=${VPN_PASSWORD}
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+    volumes:
+      - ${ROOT_DIR}/config/gluetun:/gluetun
+    restart: always
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ${ROOT_DIR}/config/qbittorrent:/config
+      - ${ROOT_DIR}/downloads:/data/downloads
+    network_mode: service:gluetun
+    depends_on:
+      - gluetun
+    restart: always
