@@ -15,6 +15,12 @@
 VERSION="1.0.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# --- WSL2 Detection ---
+IS_WSL=false
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    IS_WSL=true
+fi
+
 # --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -73,6 +79,18 @@ ask_yes_no() {
     echo -ne "  ${YELLOW}$1 (Y/N): ${NC}"
     read -r response
     [[ "$response" =~ ^[Yy]$ ]]
+}
+
+open_url() {
+    local url="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        open "$url"
+    elif [[ "$IS_WSL" == "true" ]]; then
+        explorer.exe "$url" 2>/dev/null || wslview "$url" 2>/dev/null || \
+        echo -e "  ${CYAN}Open: $url${NC}"
+    else
+        xdg-open "$url" 2>/dev/null || echo -e "  ${CYAN}Open: $url${NC}"
+    fi
 }
 
 # --- Pre-Flight Checks ---
@@ -226,12 +244,7 @@ get_vpn_credentials() {
         echo ""
 
         if ask_yes_no "Open $VPN_NAME WireGuard page in your browser now?"; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                open "$VPN_URL"
-            else
-                xdg-open "$VPN_URL" 2>/dev/null || \
-                echo -e "  ${CYAN}${VPN_URL}${NC}"
-            fi
+            open_url "$VPN_URL"
             echo ""
             write_info "Browser opened. Copy your credentials, then come back here."
             press_enter
@@ -268,12 +281,7 @@ get_vpn_credentials() {
         echo ""
 
         if ask_yes_no "Open $VPN_NAME credential page in your browser now?"; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                open "$VPN_URL"
-            else
-                xdg-open "$VPN_URL" 2>/dev/null || \
-                echo -e "  ${CYAN}${VPN_URL}${NC}"
-            fi
+            open_url "$VPN_URL"
             echo ""
             write_info "Browser opened. Copy your credentials, then come back here."
             press_enter
@@ -471,11 +479,7 @@ show_setup_guide() {
     echo ""
     echo -e "  ${YELLOW}Press ENTER to open qBittorrent in your browser...${NC}"
     read -r
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        open "http://localhost:8080"
-    else
-        xdg-open "http://localhost:8080" 2>/dev/null || echo -e "  ${CYAN}Open: http://localhost:8080${NC}"
-    fi
+    open_url "http://localhost:8080"
     echo ""
     echo -e "  ${YELLOW}Login:${NC}"
     echo -e "    ${WHITE}Username: ${CYAN}admin${NC}"

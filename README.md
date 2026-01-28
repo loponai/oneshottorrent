@@ -8,24 +8,103 @@ A lightweight setup script that automatically deploys qBittorrent routed through
 
 ## Download & Install
 
-| Platform | Instructions |
-|----------|--------------|
-| **Windows** | Download ZIP → Extract → Double-click **`Setup-SafeTorrent.bat`** |
-| **macOS** | One-liner below, or download ZIP → `chmod +x setup.sh && ./setup.sh` |
-| **Linux** | One-liner below, or download ZIP → `chmod +x setup.sh && ./setup.sh` |
-
 [![Download ZIP](https://img.shields.io/badge/Download-ZIP-blue?style=for-the-badge&logo=github)](https://github.com/loponai/oneshottorrent/archive/refs/heads/main.zip)
 
-### One-Liner Install (Mac/Linux)
+> **Need a VPN?** [**NordVPN**](https://nordvpn.tomspark.tech/) (4 extra months FREE!) | [**ProtonVPN**](https://protonvpn.tomspark.tech/) (3 months FREE!) | [**Surfshark**](https://surfshark.tomspark.tech/) (3 extra months FREE!)
 
+<details>
+<summary><b>Windows (Docker Desktop) - Recommended for beginners</b></summary>
+
+### Prerequisites
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. During installation, make sure **"Use WSL 2"** is checked
+3. Start Docker Desktop and wait for the whale icon to turn green
+
+### Install
+1. Download the ZIP (button above)
+2. Extract to your Desktop
+3. Double-click **`Setup-SafeTorrent.bat`**
+4. Follow the prompts
+
+</details>
+
+<details>
+<summary><b>Windows (WSL2 Native) - Power users, lower resource usage</b></summary>
+
+### Prerequisites
+1. Open PowerShell as Admin and run: `wsl --install`
+2. Restart your computer
+3. Open Ubuntu (or your WSL2 distro) and install Docker:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   sudo usermod -aG docker $USER
+   ```
+4. Restart WSL2: Run `wsl --shutdown` in PowerShell, then reopen Ubuntu
+
+### Install
+**Option A - One-liner:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/loponai/oneshottorrent/main/install.sh | bash
 ```
 
-> **Need a VPN?**
-> - [**NordVPN**](https://nordvpn.tomspark.tech/) - 4 extra months FREE!
-> - [**ProtonVPN**](https://protonvpn.tomspark.tech/) - 3 months FREE!
-> - [**Surfshark**](https://surfshark.tomspark.tech/) - 3 extra months FREE!
+**Option B - Manual:**
+1. Download and extract the ZIP
+2. In WSL2 terminal, navigate to the folder and run:
+   ```bash
+   chmod +x setup.sh && ./setup.sh
+   ```
+
+**Benefits:** Lower memory usage, fewer firewall issues, no Docker Desktop license concerns
+
+</details>
+
+<details>
+<summary><b>macOS</b></summary>
+
+### Prerequisites
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. Start Docker Desktop and wait for it to be ready
+
+### Install
+**Option A - One-liner:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/loponai/oneshottorrent/main/install.sh | bash
+```
+
+**Option B - Manual:**
+1. Download and extract the ZIP
+2. Open Terminal, navigate to the folder, and run:
+   ```bash
+   chmod +x setup.sh && ./setup.sh
+   ```
+
+</details>
+
+<details>
+<summary><b>Linux</b></summary>
+
+### Prerequisites
+Install Docker Engine:
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+```
+Log out and back in (or run `newgrp docker`)
+
+### Install
+**Option A - One-liner:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/loponai/oneshottorrent/main/install.sh | bash
+```
+
+**Option B - Manual:**
+1. Download and extract the ZIP
+2. Run:
+   ```bash
+   chmod +x setup.sh && ./setup.sh
+   ```
+
+</details>
 
 ---
 
@@ -44,38 +123,6 @@ curl -fsSL https://raw.githubusercontent.com/loponai/oneshottorrent/main/install
 |---------|------|-------------|
 | qBittorrent | `localhost:8080` | Torrent client |
 | Gluetun | - | VPN tunnel (NordVPN/ProtonVPN/Surfshark) |
-
-## Requirements
-
-- **Windows 10/11**: [Docker Desktop](https://www.docker.com/products/docker-desktop/) with WSL 2
-- **macOS**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- **Linux**: [Docker Engine](https://docs.docker.com/engine/install/) (or run `curl -fsSL https://get.docker.com | sh`)
-- A VPN subscription from one of:
-  - [**NordVPN**](https://nordvpn.tomspark.tech/) - 4 extra months FREE! Fastest speeds based on [RealVPNSpeeds.com](https://realvpnspeeds.com)
-  - [**ProtonVPN**](https://protonvpn.tomspark.tech/) - 3 months FREE!
-  - [**Surfshark**](https://surfshark.tomspark.tech/) - 3 extra months FREE!
-
-## Quick Start
-
-1. **Download** - Click the green "Code" button, then "Download ZIP"
-
-2. **Extract** the ZIP file to your Desktop
-
-3. **Run the setup script:**
-
-   **Windows:**
-   ```
-   Double-click Setup-SafeTorrent.bat
-   ```
-
-   **Mac/Linux:**
-   ```bash
-   cd ~/Desktop/oneshottorrent-main
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-
-4. **Follow the prompts** - the script will guide you through everything
 
 ## What You'll Need
 
