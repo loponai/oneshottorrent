@@ -174,6 +174,24 @@ get_vpn_provider() {
             ;;
     esac
 
+    # Ask ProtonVPN users about free vs paid tier
+    FREE_ONLY="off"
+    if [[ "$VPN_PROVIDER" == "protonvpn" ]]; then
+        echo ""
+        echo -e "  ${WHITE}Are you on the ProtonVPN Free plan?${NC}"
+        echo ""
+        echo -e "    ${GREEN}1. Paid${NC}   ${GRAY}(Plus, Unlimited, Visionary)${NC}"
+        echo -e "    ${CYAN}2. Free${NC}   ${GRAY}(limited countries, no port forwarding)${NC}"
+        echo ""
+        echo -ne "  ${YELLOW}Select (1-2) [default: 1]: ${NC}"
+        read -r tier_choice
+        if [[ "$tier_choice" == "2" ]]; then
+            FREE_ONLY="on"
+            echo ""
+            write_info "Free tier selected. Only free servers will be used."
+        fi
+    fi
+
     echo ""
     write_success "Selected: $VPN_NAME"
 }
@@ -473,6 +491,9 @@ EOF
 
 # --- SERVER LOCATION ---
 SERVER_COUNTRIES=${SERVER_COUNTRY}
+
+# --- FREE TIER (ProtonVPN only) ---
+FREE_ONLY=${FREE_ONLY}
 
 # --- SYSTEM SETTINGS ---
 TZ=${TIMEZONE}
