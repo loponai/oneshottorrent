@@ -141,6 +141,8 @@ curl -fsSL https://raw.githubusercontent.com/loponai/oneshottorrent/main/install
 
 The credentials look like random alphanumeric strings (e.g., `qVVEf1PqMaXi`) - NOT `yourname@email.com`
 
+> **Platform selection:** If your VPN provider asks which platform/OS you're on, always select **Linux** — even on Windows. The VPN runs inside a Linux Docker container, not on your host OS.
+
 ## Manual Commands
 
 ```bash
