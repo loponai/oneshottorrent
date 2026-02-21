@@ -230,14 +230,14 @@ get_vpn_credentials() {
         echo ""
         write_warning "You need your WireGuard configuration from $VPN_NAME"
         echo ""
+        echo -e "  ${WHITE}You can paste EITHER:${NC}"
+        echo -e "  ${CYAN}  Option A:${NC} ${WHITE}The entire WireGuard config block${NC} ${GRAY}(we'll extract what we need)${NC}"
+        echo -e "  ${CYAN}  Option B:${NC} ${WHITE}Just the Private Key value${NC}"
+        echo ""
         echo -e "  ${WHITE}How to get them:${NC}"
         echo -e "  ${GRAY}1. Go to: ${CYAN}${VPN_URL}${NC}"
         echo -e "  ${GRAY}2. Generate a new WireGuard configuration${NC}"
-        echo -e "  ${GRAY}3. You'll need the ${WHITE}Private Key${GRAY} and ${WHITE}Address${GRAY} (IP)${NC}"
-        echo ""
-        echo -e "  ${WHITE}Example values:${NC}"
-        echo -e "  ${GRAY}  Private Key: ${WHITE}yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=${NC}"
-        echo -e "  ${GRAY}  Address:     ${WHITE}10.2.0.2/32${NC}"
+        echo -e "  ${GRAY}3. Copy the config or just the Private Key and Address${NC}"
         echo ""
         echo -e "  ${GREEN}Don't have ${VPN_NAME}? Get ${VPN_BONUS}!${NC}"
         echo -e "  ${CYAN}${VPN_AFFILIATE}${NC}"
@@ -251,11 +251,51 @@ get_vpn_credentials() {
         fi
 
         echo ""
-        echo -ne "  ${YELLOW}Enter your WireGuard Private Key: ${NC}"
-        read -r WIREGUARD_PRIVATE_KEY
+        echo -e "  ${WHITE}Paste your WireGuard config or Private Key, then press ENTER:${NC}"
+        echo -e "  ${DARKGRAY}(If pasting full config, extra lines will be read automatically)${NC}"
+        echo ""
+        echo -ne "  ${YELLOW}> ${NC}"
+        read -r first_line
 
-        echo -ne "  ${YELLOW}Enter your WireGuard Address (e.g., 10.2.0.2/32): ${NC}"
-        read -r WIREGUARD_ADDRESSES
+        # Check if user pasted a full config block (starts with [Interface] or comment)
+        if [[ "$first_line" =~ ^\[Interface\] ]] || [[ "$first_line" =~ ^#.* ]]; then
+            # Read remaining lines of the pasted config (with short timeout for paste buffer)
+            local config_block="$first_line"
+            while IFS= read -r -t 1 line; do
+                config_block="$config_block"$'\n'"$line"
+            done
+
+            # Extract PrivateKey and Address from config block
+            WIREGUARD_PRIVATE_KEY=$(echo "$config_block" | grep -i "^PrivateKey" | head -1 | sed 's/.*=\s*//')
+            WIREGUARD_ADDRESSES=$(echo "$config_block" | grep -i "^Address" | head -1 | sed 's/.*=\s*//')
+
+            # Trim whitespace
+            WIREGUARD_PRIVATE_KEY=$(echo "$WIREGUARD_PRIVATE_KEY" | xargs)
+            WIREGUARD_ADDRESSES=$(echo "$WIREGUARD_ADDRESSES" | xargs)
+
+            if [[ -n "$WIREGUARD_PRIVATE_KEY" && -n "$WIREGUARD_ADDRESSES" ]]; then
+                echo ""
+                write_success "Extracted from config:"
+                echo -e "    ${WHITE}Private Key: ${CYAN}${WIREGUARD_PRIVATE_KEY:0:10}...${NC}"
+                echo -e "    ${WHITE}Address:     ${CYAN}${WIREGUARD_ADDRESSES}${NC}"
+            else
+                write_error "Could not find PrivateKey or Address in the pasted config!"
+                echo -e "  ${GRAY}Make sure your config contains lines like:${NC}"
+                echo -e "  ${WHITE}  PrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=${NC}"
+                echo -e "  ${WHITE}  Address = 10.2.0.2/32${NC}"
+                return 1
+            fi
+        else
+            # User pasted just the private key directly
+            WIREGUARD_PRIVATE_KEY="$first_line"
+
+            echo -ne "  ${YELLOW}Enter your WireGuard Address (e.g., 10.2.0.2/32): ${NC}"
+            read -r WIREGUARD_ADDRESSES
+        fi
+
+        # Trim whitespace
+        WIREGUARD_PRIVATE_KEY=$(echo "$WIREGUARD_PRIVATE_KEY" | xargs)
+        WIREGUARD_ADDRESSES=$(echo "$WIREGUARD_ADDRESSES" | xargs)
 
         if [[ -z "$WIREGUARD_PRIVATE_KEY" || -z "$WIREGUARD_ADDRESSES" ]]; then
             write_error "Private Key and Address cannot be empty!"
