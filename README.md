@@ -143,7 +143,36 @@ The credentials look like random alphanumeric strings (e.g., `qVVEf1PqMaXi`) - N
 
 > **Platform selection:** If your VPN provider asks which platform/OS you're on, always select **Linux** — even on Windows. The VPN runs inside a Linux Docker container, not on your host OS.
 
-## Manual Commands
+## Usage
+
+### Windows - Easy Manager
+
+After setup, double-click **`Manage-SafeTorrent.bat`** for a menu with all options:
+
+| Option | What it does |
+|--------|-------------|
+| **Start** | Start the VPN + qBittorrent |
+| **Stop** | Stop everything |
+| **Status** | Check if containers are running |
+| **VPN Check** | Show your current VPN IP address |
+| **Get Password** | Show qBittorrent login password |
+| **View Logs** | Show VPN connection logs |
+| **Open qBittorrent** | Open Web UI in your browser |
+| **Restart** | Stop and start again |
+| **Uninstall** | Remove containers and images |
+
+### First Login
+
+1. Open **http://localhost:8080** in your browser
+2. Username: `admin`
+3. Password: Use **Get Password** in the manager (or see [Troubleshooting](#qbittorrent-password))
+4. **Change your password** after logging in: Tools > Options > Web UI
+
+### Auto-Start
+
+The containers automatically restart on boot as long as Docker is running. No need to manually start them each time.
+
+### Manual Commands (Mac/Linux/WSL)
 
 ```bash
 # Start the stack
@@ -156,7 +185,7 @@ docker compose down
 docker logs gluetun
 
 # Check your VPN IP
-docker logs gluetun | grep "Public IP"
+docker exec gluetun sh -c "wget -qO- https://ipinfo.io"
 
 # Check container status
 docker ps
