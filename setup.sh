@@ -426,12 +426,12 @@ start_safe_torrent() {
 
     write_step "1" "Pulling Docker images (this may take a few minutes on first run)..."
     echo ""
-    docker compose pull 2>&1 | sed 's/^/      /'
+    docker compose pull </dev/null 2>&1 | sed 's/^/      /'
 
     echo ""
     write_step "2" "Starting containers..."
     echo ""
-    docker compose up -d 2>&1 | sed 's/^/      /'
+    docker compose up -d </dev/null 2>&1 | sed 's/^/      /'
 
     echo ""
     write_step "3" "Waiting for VPN to connect..."
@@ -456,7 +456,7 @@ start_safe_torrent() {
     echo ""
 
     if [[ "$connected" == "true" ]]; then
-        ip=$(docker logs gluetun 2>&1 | grep "Public IP address is" | tail -1 | sed 's/.*Public IP address is //' | cut -d' ' -f1)
+        ip=$(docker logs gluetun </dev/null 2>&1 | grep "Public IP address is" | tail -1 | sed 's/.*Public IP address is //' | cut -d' ' -f1)
         if [[ -n "$ip" ]]; then
             write_success "VPN Connected! Your IP: $ip"
         else
@@ -466,7 +466,7 @@ start_safe_torrent() {
     else
         write_error "VPN connection timed out. Checking logs..."
         echo ""
-        docker logs gluetun 2>&1 | grep -E "AUTH_FAILED|error|Error" | tail -5 | sed 's/^/      /'
+        docker logs gluetun </dev/null 2>&1 | grep -E "AUTH_FAILED|error|Error" | tail -5 | sed 's/^/      /'
         return 1
     fi
 }
