@@ -38,12 +38,17 @@ if %errorlevel% neq 0 (
     goto :done
 )
 
-:: Check if Docker is installed in WSL2
-wsl -- docker --version >nul 2>&1
+:: Check if Docker is NATIVELY installed in WSL2 (not a Docker Desktop symlink)
+wsl -- bash -c "docker --version && test ! -L $(which docker)" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [!] Docker is not installed inside WSL2. Installing now...
+    echo  [!] Docker is not natively installed inside WSL2. Installing now...
     echo.
-    wsl -u root -- bash -c "curl -fsSL https://get.docker.com | sh"
+    :: Remove Docker Desktop symlinks if they exist
+    echo  [!] Removing any Docker Desktop symlinks...
+    wsl -u root -- bash -c "rm -f /usr/bin/docker /usr/local/bin/docker 2>/dev/null; rm -f /usr/bin/docker-compose /usr/local/bin/docker-compose 2>/dev/null"
+    echo.
+    :: Install Docker natively, DOCKER_INSTALL_SKIP_WSLCHECK bypasses the WSL nag
+    wsl -u root -- bash -c "SKIP_IPTABLES_CHECK=1 curl -fsSL https://get.docker.com | DOCKER_INSTALL_SKIP_WSLCHECK=1 sh"
     if %errorlevel% neq 0 (
         echo  [X] Docker installation failed!
         echo.
