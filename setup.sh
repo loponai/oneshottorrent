@@ -251,8 +251,8 @@ get_vpn_credentials() {
         fi
 
         echo ""
-        echo -e "  ${WHITE}Paste your WireGuard config or just the Private Key.${NC}"
-        echo -e "  ${DARKGRAY}(If pasting full config, press ENTER on an empty line when done)${NC}"
+        echo -e "  ${WHITE}Paste your WireGuard Private Key (or full .conf file contents).${NC}"
+        echo -e "  ${DARKGRAY}Tip: Pasting just the Private Key value is easiest.${NC}"
         echo ""
         echo -ne "  ${YELLOW}> ${NC}"
         read -r first_line
@@ -262,30 +262,23 @@ get_vpn_credentials() {
 
         # Check if user pasted a full config block (starts with [Interface] or comment)
         if [[ "$first_line" == "["* ]] || [[ "$first_line" == "#"* ]]; then
-            # Read remaining lines and extract PrivateKey + Address directly
+            # Detected config block - read remaining lines WITHOUT any echo first
             WIREGUARD_PRIVATE_KEY=""
             WIREGUARD_ADDRESSES=""
-            echo -e "  ${DARKGRAY}  (reading config... press ENTER on empty line when done)${NC}"
-            while IFS= read -r line; do
-                # Strip carriage returns
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+                read -r -t 10 line || break
                 line="${line//$'\r'/}"
-                # Stop on empty line if we have both values
-                if [[ -z "$line" && -n "$WIREGUARD_PRIVATE_KEY" && -n "$WIREGUARD_ADDRESSES" ]]; then
-                    break
-                fi
-                # Stop if we hit [Peer] section
                 [[ "$line" == "["* && "$line" != "[Interface]" ]] && break
-                # Extract PrivateKey value
                 if [[ "$line" == PrivateKey* ]]; then
                     WIREGUARD_PRIVATE_KEY="${line#*= }"
                 fi
-                # Extract Address value
                 if [[ "$line" == Address* ]]; then
                     WIREGUARD_ADDRESSES="${line#*= }"
                 fi
+                [[ -n "$WIREGUARD_PRIVATE_KEY" && -n "$WIREGUARD_ADDRESSES" ]] && break
             done
-            # Flush any remaining pasted lines
-            while IFS= read -r -t 1 _; do :; done
+            # Drain remaining pasted lines
+            while read -r -t 2 _; do :; done
 
             # Trim whitespace
             WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY%% }"
@@ -299,11 +292,21 @@ get_vpn_credentials() {
                 echo -e "    ${WHITE}Private Key: ${CYAN}${WIREGUARD_PRIVATE_KEY:0:10}...${NC}"
                 echo -e "    ${WHITE}Address:     ${CYAN}${WIREGUARD_ADDRESSES}${NC}"
             else
-                write_error "Could not find PrivateKey or Address in the pasted config!"
-                echo -e "  ${GRAY}Make sure your config contains lines like:${NC}"
-                echo -e "  ${WHITE}  PrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=${NC}"
-                echo -e "  ${WHITE}  Address = 10.2.0.2/32${NC}"
-                return 1
+                # Auto-extract failed - drain stdin thoroughly then ask manually
+                echo ""
+                write_warning "Could not auto-extract from config. Please enter values separately."
+                echo -e "  ${GRAY}From your .conf file, copy the value after 'PrivateKey = '${NC}"
+                echo -e "  ${GRAY}(It's a long base64 string, e.g. yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=)${NC}"
+                echo ""
+                # Wait for any in-flight paste data to arrive, then drain it
+                sleep 3
+                while read -r -t 1 _; do :; done
+                echo -ne "  ${YELLOW}WG Private Key: ${NC}"
+                read -r WIREGUARD_PRIVATE_KEY
+                WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY//$'\r'/}"
+                echo -ne "  ${YELLOW}WG Address (e.g., 10.2.0.2/32): ${NC}"
+                read -r WIREGUARD_ADDRESSES
+                WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES//$'\r'/}"
             fi
         else
             # User pasted just the private key directly
