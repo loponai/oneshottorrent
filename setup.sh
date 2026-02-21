@@ -257,35 +257,41 @@ get_vpn_credentials() {
         echo -ne "  ${YELLOW}> ${NC}"
         read -r first_line
 
+        # Strip carriage returns from first line (CMD/WSL paste adds \r)
+        first_line="${first_line//$'\r'/}"
+
         # Check if user pasted a full config block (starts with [Interface] or comment)
-        if [[ "$first_line" =~ ^\[Interface\] ]] || [[ "$first_line" =~ ^#.* ]]; then
-            # Read remaining lines until empty line or [Peer] section
-            local config_block="$first_line"
-            local found_key=false
-            local found_addr=false
+        if [[ "$first_line" == "["* ]] || [[ "$first_line" == "#"* ]]; then
+            # Read remaining lines and extract PrivateKey + Address directly
+            WIREGUARD_PRIVATE_KEY=""
+            WIREGUARD_ADDRESSES=""
             echo -e "  ${DARKGRAY}  (reading config... press ENTER on empty line when done)${NC}"
             while IFS= read -r line; do
-                # Stop on empty line (but only after we've read some content)
-                if [[ -z "$line" && "$found_key" == "true" && "$found_addr" == "true" ]]; then
+                # Strip carriage returns
+                line="${line//$'\r'/}"
+                # Stop on empty line if we have both values
+                if [[ -z "$line" && -n "$WIREGUARD_PRIVATE_KEY" && -n "$WIREGUARD_ADDRESSES" ]]; then
                     break
                 fi
                 # Stop if we hit [Peer] section
-                [[ "$line" =~ ^\[Peer\] ]] && break
-                config_block="$config_block"$'\n'"$line"
-                # Track what we've found
-                [[ "$line" =~ ^PrivateKey ]] && found_key=true
-                [[ "$line" =~ ^Address ]] && found_addr=true
+                [[ "$line" == "["* && "$line" != "[Interface]" ]] && break
+                # Extract PrivateKey value
+                if [[ "$line" == PrivateKey* ]]; then
+                    WIREGUARD_PRIVATE_KEY="${line#*= }"
+                fi
+                # Extract Address value
+                if [[ "$line" == Address* ]]; then
+                    WIREGUARD_ADDRESSES="${line#*= }"
+                fi
             done
-            # Flush any remaining pasted lines (e.g. [Peer] section)
+            # Flush any remaining pasted lines
             while IFS= read -r -t 1 _; do :; done
 
-            # Extract PrivateKey and Address from config block
-            WIREGUARD_PRIVATE_KEY=$(echo "$config_block" | grep -i "^PrivateKey" | head -1 | sed 's/.*=\s*//')
-            WIREGUARD_ADDRESSES=$(echo "$config_block" | grep -i "^Address" | head -1 | sed 's/.*=\s*//')
-
             # Trim whitespace
-            WIREGUARD_PRIVATE_KEY=$(echo "$WIREGUARD_PRIVATE_KEY" | xargs)
-            WIREGUARD_ADDRESSES=$(echo "$WIREGUARD_ADDRESSES" | xargs)
+            WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY%% }"
+            WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY## }"
+            WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES%% }"
+            WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES## }"
 
             if [[ -n "$WIREGUARD_PRIVATE_KEY" && -n "$WIREGUARD_ADDRESSES" ]]; then
                 echo ""
