@@ -47,14 +47,16 @@ if %errorlevel% neq 0 (
     echo  [!] Removing any Docker Desktop symlinks...
     wsl -u root -- bash -c "rm -f /usr/bin/docker /usr/local/bin/docker 2>/dev/null; rm -f /usr/bin/docker-compose /usr/local/bin/docker-compose 2>/dev/null"
     echo.
-    :: Install Docker natively, DOCKER_INSTALL_SKIP_WSLCHECK bypasses the WSL nag
-    wsl -u root -- bash -c "SKIP_IPTABLES_CHECK=1 curl -fsSL https://get.docker.com | DOCKER_INSTALL_SKIP_WSLCHECK=1 sh"
+    :: Install Docker natively
+    wsl -u root -- bash -c "curl -fsSL https://get.docker.com | sh"
+    echo.
+    :: Verify Docker was actually installed (don't trust exit code from piped install)
+    wsl -- bash -c "test -x /usr/bin/docker || test -x /usr/local/bin/docker" >nul 2>&1
     if %errorlevel% neq 0 (
         echo  [X] Docker installation failed!
         echo.
         goto :done
     )
-    echo.
     echo  [OK] Docker installed!
     echo  [!] Adding your user to the docker group...
     wsl -u root -- usermod -aG docker %USERNAME%
