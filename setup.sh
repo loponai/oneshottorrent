@@ -251,19 +251,33 @@ get_vpn_credentials() {
         fi
 
         echo ""
-        echo -e "  ${WHITE}Paste your WireGuard config or Private Key, then press ENTER:${NC}"
-        echo -e "  ${DARKGRAY}(If pasting full config, extra lines will be read automatically)${NC}"
+        echo -e "  ${WHITE}Paste your WireGuard config or just the Private Key.${NC}"
+        echo -e "  ${DARKGRAY}(If pasting full config, press ENTER on an empty line when done)${NC}"
         echo ""
         echo -ne "  ${YELLOW}> ${NC}"
         read -r first_line
 
         # Check if user pasted a full config block (starts with [Interface] or comment)
         if [[ "$first_line" =~ ^\[Interface\] ]] || [[ "$first_line" =~ ^#.* ]]; then
-            # Read remaining lines of the pasted config (with short timeout for paste buffer)
+            # Read remaining lines until empty line or [Peer] section
             local config_block="$first_line"
-            while IFS= read -r -t 1 line; do
+            local found_key=false
+            local found_addr=false
+            echo -e "  ${DARKGRAY}  (reading config... press ENTER on empty line when done)${NC}"
+            while IFS= read -r line; do
+                # Stop on empty line (but only after we've read some content)
+                if [[ -z "$line" && "$found_key" == "true" && "$found_addr" == "true" ]]; then
+                    break
+                fi
+                # Stop if we hit [Peer] section
+                [[ "$line" =~ ^\[Peer\] ]] && break
                 config_block="$config_block"$'\n'"$line"
+                # Track what we've found
+                [[ "$line" =~ ^PrivateKey ]] && found_key=true
+                [[ "$line" =~ ^Address ]] && found_addr=true
             done
+            # Flush any remaining pasted lines (e.g. [Peer] section)
+            while IFS= read -r -t 1 _; do :; done
 
             # Extract PrivateKey and Address from config block
             WIREGUARD_PRIVATE_KEY=$(echo "$config_block" | grep -i "^PrivateKey" | head -1 | sed 's/.*=\s*//')
