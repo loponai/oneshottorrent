@@ -266,7 +266,9 @@ get_vpn_credentials() {
             WIREGUARD_PRIVATE_KEY=""
             WIREGUARD_ADDRESSES=""
             for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-                read -r -t 10 line || break
+                if ! read -r -t 10 line; then
+                    [[ -z "$line" ]] && break
+                fi
                 line="${line//$'\r'/}"
                 [[ "$line" == "["* && "$line" != "[Interface]" ]] && break
                 if [[ "$line" == PrivateKey* ]]; then
