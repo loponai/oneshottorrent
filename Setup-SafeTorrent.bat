@@ -41,15 +41,25 @@ if %errorlevel% neq 0 (
 :: Check if Docker is installed in WSL2
 wsl -- docker --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [X] Docker is not installed inside WSL2!
+    echo  [!] Docker is not installed inside WSL2. Installing now...
     echo.
-    echo      Open your WSL2 terminal and run:
-    echo      curl -fsSL https://get.docker.com ^| sh
-    echo      sudo usermod -aG docker $USER
+    wsl -u root -- bash -c "curl -fsSL https://get.docker.com | sh"
+    if %errorlevel% neq 0 (
+        echo  [X] Docker installation failed!
+        echo.
+        goto :done
+    )
     echo.
-    echo      Then run: wsl --shutdown
-    echo      Reopen WSL2 and run this again.
+    echo  [OK] Docker installed!
+    echo  [!] Adding your user to the docker group...
+    wsl -u root -- usermod -aG docker %USERNAME%
     echo.
+    echo  [!] Restarting WSL2 to apply group changes...
+    echo      This window will close. Please run this script again.
+    echo.
+    echo  Press any key to restart WSL2...
+    pause >nul
+    wsl --shutdown
     goto :done
 )
 
@@ -58,7 +68,16 @@ wsl -- docker info >nul 2>&1
 if %errorlevel% neq 0 (
     echo  [!] Starting Docker daemon...
     wsl -u root -- service docker start >nul 2>&1
-    timeout /t 3 /nobreak >nul
+    timeout /t 5 /nobreak >nul
+    wsl -- docker info >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo  [X] Could not start Docker daemon!
+        echo.
+        echo      Try running: wsl --shutdown
+        echo      Then run this script again.
+        echo.
+        goto :done
+    )
 )
 
 :: Run setup.sh - use --cd to set working directory to this folder
