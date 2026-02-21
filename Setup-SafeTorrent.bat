@@ -60,10 +60,9 @@ if %errorlevel% neq 0 (
 :: Check if Docker daemon is actually running in WSL2
 wsl -- docker info >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [!] Docker is installed but the daemon is not running.
-    echo      Starting Docker daemon in WSL2...
+    echo  [!] Docker daemon is not running. Starting it...
     echo.
-    wsl -- sudo service docker start
+    wsl -u root -- service docker start
     timeout /t 3 /nobreak >nul
     wsl -- docker info >nul 2>&1
     if %errorlevel% neq 0 (
@@ -81,12 +80,23 @@ if %errorlevel% neq 0 (
     echo.
 )
 
-:: Convert Windows path to WSL path
+:: Convert Windows path to WSL path and run setup.sh
 set "SCRIPT_DIR=%~dp0"
-for /f "delims=" %%i in ('wsl -- wslpath -u "%SCRIPT_DIR%"') do set "WSL_DIR=%%i"
+for /f "usebackq delims=" %%i in (`wsl wslpath -u "%SCRIPT_DIR%"`) do set "WSL_DIR=%%i"
 
-:: Run setup.sh inside WSL2
-wsl -- bash -c "cd '%WSL_DIR%' && chmod +x setup.sh && ./setup.sh"
+echo  [OK] Launching setup in WSL2...
+echo       Path: %WSL_DIR%
+echo.
+
+:: Use bash with the full script path (not bash -c) so stdin stays interactive
+wsl -- bash "%WSL_DIR%setup.sh"
+
+echo.
+echo  =====================================================
+echo  Setup script finished. If you saw errors above,
+echo  check that Docker is running: wsl -- docker info
+echo  =====================================================
 
 :done
+echo.
 pause
