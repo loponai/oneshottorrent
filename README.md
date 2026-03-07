@@ -10,7 +10,7 @@ A lightweight setup script that automatically deploys qBittorrent routed through
 
 [![Download ZIP](https://img.shields.io/badge/Download-ZIP-blue?style=for-the-badge&logo=github)](https://github.com/loponai/oneshottorrent/archive/refs/heads/main.zip)
 
-> **Need a VPN?** [**NordVPN**](https://nordvpn.tomspark.tech/) (4 extra months FREE!) | [**ProtonVPN**](https://protonvpn.tomspark.tech/) (3 months FREE!) | [**Surfshark**](https://surfshark.tomspark.tech/) (3 extra months FREE!)
+> **Need a VPN?** NordVPN, ProtonVPN, or Surfshark are all supported. See [What You'll Need](#what-youll-need) below.
 
 <details>
 <summary><b>Windows (Docker Desktop) - Recommended for beginners</b></summary>
@@ -239,6 +239,30 @@ Username is `admin`. Change the password after logging in.
 qBittorrent shares Gluetun's network = Zero IP leaks
 ```
 
+## Access from Anywhere with Tailscale
+
+If you are running Safe Torrent Box on a home PC, you can access the qBittorrent web UI from your phone, laptop, or any device anywhere in the world using [Tailscale](https://tailscale.com/).
+
+### Install Tailscale on the machine running Safe Torrent Box
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+```
+
+### Access qBittorrent remotely
+
+Install Tailscale on your phone/laptop too, then access qBittorrent at:
+
+```
+http://[tailscale-ip]:8080
+```
+
+Replace `[tailscale-ip]` with the IP shown after running `tailscale up` on your server (e.g., `100.x.y.z`).
+
+- No port forwarding needed — works behind any NAT or firewall
+- Works from any network (mobile data, hotel WiFi, anywhere)
+- This is for **remote access only** — your download traffic still goes through Gluetun VPN for privacy
+
 ## License
 
 **MIT License with Attribution Requirement**
@@ -248,16 +272,6 @@ You are free to use, modify, and share this software, but you **MUST credit Tom 
 **Required attribution:** `Created by Tom Spark - youtube.com/@TomSparkReviews`
 
 Failure to attribute = DMCA takedown. See [LICENSE](LICENSE) for full terms.
-
-## Support This Project
-
-This project is free and open source. If you'd like to support development:
-
-| Provider | Deal |
-|----------|------|
-| **[NordVPN](https://nordvpn.tomspark.tech/)** | 4 extra months FREE! Fastest speeds ([RealVPNSpeeds.com](https://realvpnspeeds.com)) |
-| **[ProtonVPN](https://protonvpn.tomspark.tech/)** | 3 months FREE! Swiss privacy |
-| **[Surfshark](https://surfshark.tomspark.tech/)** | 3 extra months FREE! Unlimited devices |
 
 ## Need Help?
 
