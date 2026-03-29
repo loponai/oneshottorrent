@@ -421,18 +421,22 @@ VPN_TYPE=$($ProtocolInfo.Protocol)
 "@
 
     if ($Credentials.Type -eq "wireguard") {
+        $safeKey = $Credentials.PrivateKey -replace '\\','\\' -replace '"','\"' -replace '\$','\$'
+        $safeAddr = $Credentials.Address -replace '\\','\\' -replace '"','\"' -replace '\$','\$'
         $content += @"
 
 # WireGuard Configuration
-WIREGUARD_PRIVATE_KEY="$($Credentials.PrivateKey)"
-WIREGUARD_ADDRESSES="$($Credentials.Address)"
+WIREGUARD_PRIVATE_KEY="$safeKey"
+WIREGUARD_ADDRESSES="$safeAddr"
 "@
     } else {
+        $safeUser = $Credentials.Username -replace '\\','\\' -replace '"','\"' -replace '\$','\$'
+        $safePass = $Credentials.Password -replace '\\','\\' -replace '"','\"' -replace '\$','\$'
         $content += @"
 
 # OpenVPN Service Credentials
-VPN_USER="$($Credentials.Username)"
-VPN_PASSWORD="$($Credentials.Password)"
+VPN_USER="$safeUser"
+VPN_PASSWORD="$safePass"
 "@
     }
 
@@ -486,7 +490,13 @@ services:
       - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
     volumes:
       - ${ROOT_DIR}/config/gluetun:/gluetun
-    restart: always
+    healthcheck:
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -501,8 +511,15 @@ services:
       - ${ROOT_DIR}/downloads:/data/downloads
     network_mode: service:gluetun
     depends_on:
-      - gluetun
-    restart: always
+      gluetun:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
 '@
 
     $content | Out-File -FilePath "$Path\docker-compose.yml" -Encoding UTF8 -NoNewline

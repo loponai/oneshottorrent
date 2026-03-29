@@ -375,7 +375,8 @@ get_vpn_credentials() {
         read -r VPN_USERNAME
 
         echo -ne "  ${YELLOW}Enter your Service Password: ${NC}"
-        read -r VPN_PASSWORD
+        read -rs VPN_PASSWORD
+        echo ""
 
         if [[ -z "$VPN_USERNAME" || -z "$VPN_PASSWORD" ]]; then
             write_error "Username and password cannot be empty!"
@@ -451,6 +452,17 @@ get_timezone() {
     esac
 }
 
+# --- Sanitize value for .env file (escape special chars) ---
+sanitize_env_value() {
+    local val="$1"
+    # Escape backslashes first, then double quotes, then dollar signs
+    val="${val//\\/\\\\}"
+    val="${val//\"/\\\"}"
+    val="${val//\$/\\\$}"
+    val="${val//\`/\\\`}"
+    printf '%s' "$val"
+}
+
 # --- File Generation ---
 create_env_file() {
     cat > "$SCRIPT_DIR/.env" << EOF
@@ -476,21 +488,21 @@ EOF
     if [[ "$VPN_TYPE" == "wireguard" ]]; then
         cat >> "$SCRIPT_DIR/.env" << EOF
 # WireGuard Configuration
-WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY}"
-WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES}"
+WIREGUARD_PRIVATE_KEY="$(sanitize_env_value "$WIREGUARD_PRIVATE_KEY")"
+WIREGUARD_ADDRESSES="$(sanitize_env_value "$WIREGUARD_ADDRESSES")"
 EOF
     else
         cat >> "$SCRIPT_DIR/.env" << EOF
 # OpenVPN Service Credentials
-VPN_USER="${VPN_USERNAME}"
-VPN_PASSWORD="${VPN_PASSWORD}"
+VPN_USER="$(sanitize_env_value "$VPN_USERNAME")"
+VPN_PASSWORD="$(sanitize_env_value "$VPN_PASSWORD")"
 EOF
     fi
 
     cat >> "$SCRIPT_DIR/.env" << EOF
 
 # --- SERVER LOCATION ---
-SERVER_COUNTRIES=${SERVER_COUNTRY}
+SERVER_COUNTRIES=$(sanitize_env_value "$SERVER_COUNTRY")
 
 # --- FREE TIER (ProtonVPN only) ---
 FREE_ONLY=${FREE_ONLY}
@@ -700,7 +712,8 @@ main() {
 
     write_step "2" "Generating .env file..."
     create_env_file
-    write_success ".env file created"
+    chmod 600 "$SCRIPT_DIR/.env"
+    write_success ".env file created (permissions restricted)"
 
     press_enter
 

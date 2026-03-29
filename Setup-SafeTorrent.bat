@@ -39,7 +39,7 @@ if %errorlevel% neq 0 (
 )
 
 :: Check if Docker is NATIVELY installed in WSL2 (not a Docker Desktop symlink)
-wsl -- bash -c "docker --version && test ! -L $(which docker)" >nul 2>&1
+wsl -- bash -c "docker --version && test ! -L \"$(which docker)\"" >nul 2>&1
 if %errorlevel% neq 0 (
     echo  [!] Docker is not natively installed inside WSL2. Installing now...
     echo.
